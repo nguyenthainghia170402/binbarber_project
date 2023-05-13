@@ -64,7 +64,7 @@ class Barber(db.Model):
     phonenumber = db.Column(db.String(13))
     forte = db.Column(db.String(50))
     description = db.Column(db.String(1000))
-    image = db.Column(db.String(30))
+    image = db.Column(db.String(300))
     createat = db.Column(db.DateTime, default=datetime.now())
     updateat = db.Column(db.DateTime, onupdate=datetime.now())
     hide = db.Column(db.Boolean, default=False)
@@ -73,15 +73,15 @@ class Barber(db.Model):
     worktimes = db.relationship('WorkTime', backref='barberWTime', lazy='dynamic')
     cusimages = db.relationship('CustomerImage', backref='barberCIma', lazy='dynamic')
 
-    def __init__(self, barberid, barbername, birthday, address, phonenumber, forte, description, image):
-        self.barberid = barberid
-        self.fullname = barbername
-        self.birthday = birthday
-        self.address = address
-        self.phonenumber = phonenumber
-        self.forte = forte
-        self.description = description
-        self.image = image
+    # def __init__(self, barberid, barbername, birthday, address, phonenumber, forte, description, image):
+    #     self.barberid = barberid
+    #     self.fullname = barbername
+    #     self.birthday = birthday
+    #     self.address = address
+    #     self.phonenumber = phonenumber
+    #     self.forte = forte
+    #     self.description = description
+    #     self.image = image
 
     def __repr__(self):
         return f"({self.barberid}) {self.barbername}"
@@ -167,7 +167,7 @@ class CustomerImage(db.Model):
     __tablename__ = 'customerimages'
 
     cusimageid = db.Column(db.Integer, primary_key=True)
-    image = db.Column(db.String(100))
+    image = db.Column(db.String(300))
 
     barberid = db.Column(db.Integer, db.ForeignKey('barbers.barberid'))
 

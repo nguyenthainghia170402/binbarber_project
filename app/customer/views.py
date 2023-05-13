@@ -25,6 +25,8 @@ def list_customers():
     print(customers, file=sys.stderr)
     customersList = []
 
+
+
     for customer in customers:
         customerDict = {
             "customerid" : customer.customerid,
@@ -35,8 +37,9 @@ def list_customers():
             "createat" : customer.createat
         }
         customersList.append(customerDict)
-
-    return jsonify({'customers' : customersList})
+    if not customersList:
+        return make_response(jsonify({'message' : 'Customers is empty'}), 404)
+    return make_response(jsonify({'customers' : customersList}), 200)
 
 @customer.route('/customers/<int:id>', methods = ['GET'])
 @login_required
