@@ -30,4 +30,7 @@ def create_app(config_name):
     from .barber import barber as barber_blueprint
     app.register_blueprint(barber_blueprint)
 
+    from .service import service as service_blueprint
+    app.register_blueprint(service_blueprint)
+
     return app

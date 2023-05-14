@@ -129,11 +129,11 @@ class Service(db.Model):
     updateat = db.Column(db.DateTime, onupdate=datetime.now())
     hide = db.Column(db.Boolean, default=False)
 
-    def __init__(self, serviceid, servicename, timeofservice, price):
-        self.serviceid = serviceid
-        self.servicename = servicename
-        self.timeofservice = timeofservice
-        self.price = price
+    # def __init__(self, serviceid, servicename, timeofservice, price):
+    #     self.serviceid = serviceid
+    #     self.servicename = servicename
+    #     self.timeofservice = timeofservice
+    #     self.price = price
 
     def __repr__(self):
         return f"({self.serviceid}) {self.servicename} {self.timeofservice} {self.price}"
