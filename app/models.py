@@ -99,7 +99,8 @@ class Booking(db.Model):
     bookingid = db.Column(db.Integer, primary_key=True)
     customerid = db.Column(db.Integer, db.ForeignKey('customers.customerid'))
     barberid = db.Column(db.Integer, db.ForeignKey('barbers.barberid'))
-    bookingtime = db.Column(db.DateTime)
+    bookingdate = db.Column(db.Date)
+    bookingtime = db.Column(db.Time)
     state = db.Column(db.String(20))
     createat = db.Column(db.DateTime, default=datetime.now())
     updateat = db.Column(db.DateTime, onupdate=datetime.now())
@@ -107,12 +108,12 @@ class Booking(db.Model):
 
     booked_services = db.relationship('Service', secondary=service_booking, backref='booked')
 
-    def __init__(self, bookingid, customerid, barberid, bookingtime, state):
-        self.bookingid = bookingid
-        self.customerid = customerid
-        self.barberid = barberid
-        self.bookingtime = bookingtime
-        self.state = state
+    # def __init__(self, bookingid, customerid, barberid, bookingtime, state):
+    #     self.bookingid = bookingid
+    #     self.customerid = customerid
+    #     self.barberid = barberid
+    #     self.bookingtime = bookingtime
+    #     self.state = state
 
     def __repr__(self):
         return f"({self.bookingid}) {self.customerid} {self.barberid} {self.state}"
@@ -147,17 +148,18 @@ class WorkTime(db.Model):
     timefrom = db.Column(db.Time)
     timeto = db.Column(db.Time)
     statework = db.Column(db.String(30))
+    createat = db.Column(db.DateTime, default=datetime.now())
     updateat = db.Column(db.DateTime, onupdate=datetime.now())
 
     barberid = db.Column(db.Integer, db.ForeignKey('barbers.barberid'))
 
-    def __init__(self, worktimeid, date, timefrom, timeto, statework, barberid):
-        self.worktimeid = worktimeid
-        self.date = date
-        self.timefrom = timefrom
-        self.timeto = timeto
-        self.statework = statework
-        self.barberid = barberid
+    # def __init__(self, worktimeid, date, timefrom, timeto, statework, barberid):
+    #     self.worktimeid = worktimeid
+    #     self.date = date
+    #     self.timefrom = timefrom
+    #     self.timeto = timeto
+    #     self.statework = statework
+    #     self.barberid = barberid
 
     def __repr__(self):
         return f"({self.worktimeid}) {self.date} {self.timefrom} {self.timeto} {self.statework} {self.barberid}"
@@ -168,13 +170,15 @@ class CustomerImage(db.Model):
 
     cusimageid = db.Column(db.Integer, primary_key=True)
     image = db.Column(db.String(300))
+    createat = db.Column(db.DateTime, default=datetime.now())
+    updateat = db.Column(db.DateTime, onupdate=datetime.now())
 
     barberid = db.Column(db.Integer, db.ForeignKey('barbers.barberid'))
 
-    def __init__(self, cusimageid, image, barberid):
-        self.cusimageid = cusimageid
-        self.image = image
-        self.barberid = barberid
+    # def __init__(self, cusimageid, image, barberid):
+    #     self.cusimageid = cusimageid
+    #     self.image = image
+    #     self.barberid = barberid
 
     def __repr__(self):
         return f"({self.cusimageid}) {self.image} {self.barberid}"

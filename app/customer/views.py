@@ -9,6 +9,7 @@ from . import customer
 from .. import db
 from ..models import Customer
 
+
 def check_admin():
     """
     Prevent non-admins from accessing the page
@@ -16,7 +17,8 @@ def check_admin():
     if not current_user.isadmin:
         abort(403)
 
-@customer.route('/customers', methods = ['GET'])
+
+@customer.route('/customers', methods=['GET'])
 @login_required
 def list_customers():
     check_admin()
@@ -25,23 +27,22 @@ def list_customers():
     print(customers, file=sys.stderr)
     customersList = []
 
-
-
     for customer in customers:
         customerDict = {
-            "customerid" : customer.customerid,
-            "customername" : customer.customername,
-            "phonenumber" : customer.phonenumber,
+            "customerid": customer.customerid,
+            "customername": customer.customername,
+            "phonenumber": customer.phonenumber,
             "birthday": customer.birthday,
             "account": customer.account,
-            "createat" : customer.createat
+            "createat": customer.createat
         }
         customersList.append(customerDict)
     if not customersList:
-        return make_response(jsonify({'message' : 'Customers is empty'}), 404)
-    return make_response(jsonify({'customers' : customersList}), 200)
+        return make_response(jsonify({'message': 'Customers is empty'}), 404)
+    return make_response(jsonify({'customers': customersList}), 200)
 
-@customer.route('/customers/<int:id>', methods = ['GET'])
+
+@customer.route('/customers/<int:id>', methods=['GET'])
 @login_required
 def get_customer_by_id(id):
     check_admin()
@@ -60,7 +61,7 @@ def get_customer_by_id(id):
     }))
 
 
-@customer.route('/customers/<int:id>', methods = ['PUT'])
+@customer.route('/customers/<int:id>', methods=['PUT'])
 @login_required
 def edit_customer(id):
     check_admin()
@@ -83,7 +84,8 @@ def edit_customer(id):
         "phonenumber": customer.phonenumber
     }))
 
-@customer.route('/customers/<int:id>', methods = ['DELETE'])
+
+@customer.route('/customers/<int:id>', methods=['DELETE'])
 @login_required
 def delete_customer(id):
     check_admin()

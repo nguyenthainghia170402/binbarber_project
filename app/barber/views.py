@@ -44,7 +44,7 @@ def list_barbers():
     if not barbersList:
         return make_response(jsonify({'message' : 'Barbers is empty'}), 404)
 
-    return jsonify({'customers' : barbersList})
+    return jsonify({'barbers' : barbersList})
 
 @barber.route('/barbers/<int:id>', methods = ['GET'])
 @login_required

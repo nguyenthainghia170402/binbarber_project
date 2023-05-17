@@ -27,6 +27,7 @@ def list_services():
 
     for service in services:
         serviceDict = {
+            "serviceid" : service.serviceid,
             "servicename" : service.servicename,
             "timeofservice" : service.timeofservice,
             "price" : service.price,
@@ -45,18 +46,19 @@ def get_service_by_id(id):
     service = Service.query.filter_by(serviceid=id, hide=False).first_or_404()
 
     return make_response(jsonify({"service":
-        [{
+        {
             "serviceid": service.serviceid,
             "servicename" : service.servicename,
             "timeofservice" : service.timeofservice,
             "price" : service.price,
             "createat" : service.createat
-        }]
+        }
     }))
 
 
 @service.route('/services', methods=['POST'])
 def create_service():
+    check_admin()
     servicename = request.json.get('servicename')
     timeofservice = request.json.get('timeofservice')
     price = request.json.get('price')

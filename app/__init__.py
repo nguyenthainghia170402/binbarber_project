@@ -33,4 +33,12 @@ def create_app(config_name):
     from .service import service as service_blueprint
     app.register_blueprint(service_blueprint)
 
+    from .booking import booking as booking_blueprint
+    app.register_blueprint(booking_blueprint)
+
+    from .worktime import worktime as worktime_blueprint
+    app.register_blueprint(worktime_blueprint)
+
+    from .customerimage import customerimage as customerimage_blueprint
+    app.register_blueprint(customerimage_blueprint)
     return app
