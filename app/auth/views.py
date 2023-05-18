@@ -1,5 +1,5 @@
-from flask import jsonify, request, session, abort
-from flask_login import login_required, login_user, logout_user
+from flask import jsonify, request, session, abort, make_response
+from flask_login import login_required, login_user, logout_user, current_user
 
 from . import auth
 from .. import db
@@ -41,7 +41,7 @@ def login():
         login_user(customer)
 
         if customer.isadmin:
-            return jsonify({'message': 'You are already logged in with admin permission'}),401
+            return jsonify({'message': 'You are already logged in with admin permission'})
         else:
             return jsonify({'message': 'You are already logged in'})
 
@@ -54,3 +54,15 @@ def logout():
     logout_user()
 
     return jsonify({'message':'You have successfully been logged out.'})
+
+@auth.route('/customer', methods=['GET'])
+@login_required
+def get_current_customer():
+    customerid = current_user.get_id()
+    customer = Customer.query.filter_by(customerid=customerid, hide=False).first_or_404()
+    return make_response(jsonify({
+        "customerid": customer.customerid,
+        "customername": customer.customername,
+        "birthday": customer.birthday,
+        "phonenumber": customer.phonenumber
+    }), 200)
