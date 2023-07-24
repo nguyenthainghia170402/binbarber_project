@@ -2,24 +2,29 @@ import sys
 import json
 
 from flask import jsonify, request, session, abort, make_response
+from flask_cors import cross_origin
 from flask_login import current_user, login_required
 from datetime import datetime
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from . import service
 from .. import db
-from ..models import Service
+from ..models import Service, Customer
+
 
 def check_admin():
     """
     Prevent non-admins from accessing the page
     """
-    if not current_user.isadmin:
+    currentUser = Customer.query.filter_by(id=get_jwt_identity(), hide=False).first_or_404()
+    if not currentUser.isadmin:
         abort(403)
 
 @service.route('/services', methods = ['GET'])
-@login_required
+@cross_origin(supports_credentials=True)
+# @jwt_required()
 def list_services():
-    check_admin()
+    # check_admin()
 
     services = Service.query.filter_by(hide=False).all()
     print(services, file=sys.stderr)
@@ -31,7 +36,8 @@ def list_services():
             "servicename" : service.servicename,
             "timeofservice" : service.timeofservice,
             "price" : service.price,
-            "createat" : service.createat
+            "createat" : service.createat,
+            "image": service.image
         }
         servicesList.append(serviceDict)
     if not servicesList:
@@ -39,7 +45,8 @@ def list_services():
     return make_response(jsonify({'services' : servicesList}), 200)
 
 @service.route('/services/<int:id>', methods = ['GET'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def get_service_by_id(id):
     check_admin()
 
@@ -57,8 +64,10 @@ def get_service_by_id(id):
 
 
 @service.route('/services', methods=['POST'])
+@cross_origin(supports_credentials=True)
+# @jwt_required()
 def create_service():
-    check_admin()
+    # check_admin()
     servicename = request.json.get('servicename')
     timeofservice = request.json.get('timeofservice')
     price = request.json.get('price')
@@ -77,7 +86,8 @@ def create_service():
     return make_response(jsonify({'message': 'Create new service Success'}), 200)
 
 @service.route('/services/<int:id>', methods = ['PUT'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def edit_service(id):
     check_admin()
 
@@ -103,7 +113,8 @@ def edit_service(id):
     }))
 
 @service.route('/services/<int:id>', methods = ['DELETE'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def delete_service(id):
     check_admin()
 

@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -5,10 +7,14 @@ from datetime import datetime
 from app import db, login_manager
 
 
+# def get_uuid():
+#     return uuid4().hex
+
+
 class Customer(UserMixin, db.Model):
     __tablename__ = 'customers'
 
-    customerid = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     customername = db.Column(db.String(60))
     birthday = db.Column(db.Date)
     phonenumber = db.Column(db.String(13))
@@ -41,17 +47,16 @@ class Customer(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     def get_id(self):
-        return (self.customerid)
+        return (self.id)
 
     def __repr__(self):
-        return f"({self.customerid}) {self.customername}"
+        return f"({self.id}) {self.customername}"
 
     # Set up user_loader
-
-
 @login_manager.user_loader
-def load_user(user_id):
-    return Customer.query.get(int(user_id))
+def load_user(customerid):
+    return Customer.query.get(int(customerid))
+
 
 
 class Barber(db.Model):
@@ -97,11 +102,11 @@ class Booking(db.Model):
     __tablename__ = 'bookings'
 
     bookingid = db.Column(db.Integer, primary_key=True)
-    customerid = db.Column(db.Integer, db.ForeignKey('customers.customerid'))
+    customerid = db.Column(db.Integer, db.ForeignKey('customers.id'))
     barberid = db.Column(db.Integer, db.ForeignKey('barbers.barberid'))
     bookingdate = db.Column(db.Date)
     bookingtime = db.Column(db.Time)
-    state = db.Column(db.String(20))
+    state = db.Column(db.String(50))
     createat = db.Column(db.DateTime, default=datetime.now())
     updateat = db.Column(db.DateTime, onupdate=datetime.now())
     hide = db.Column(db.Boolean, default=False)
@@ -126,6 +131,7 @@ class Service(db.Model):
     servicename = db.Column(db.String(50), unique=True)
     timeofservice = db.Column(db.Integer)
     price = db.Column(db.BigInteger)
+    image = db.Column(db.String(300))
     createat = db.Column(db.DateTime, default=datetime.now())
     updateat = db.Column(db.DateTime, onupdate=datetime.now())
     hide = db.Column(db.Boolean, default=False)

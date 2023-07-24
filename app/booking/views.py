@@ -2,27 +2,31 @@ import sys
 import json
 
 from flask import jsonify, request, session, abort, make_response
+from flask_cors import cross_origin
 from flask_login import current_user, login_required
 from datetime import datetime, timedelta
-
-
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from . import booking
 
 from .. import db
 from ..models import Service, Booking, Customer, Barber, WorkTime
+from app import db, login_manager
+
 
 def check_admin():
     """
     Prevent non-admins from accessing the page
     """
-    if not current_user.isadmin:
+    currentUser = Customer.query.filter_by(id=get_jwt_identity(), hide=False).first_or_404()
+    if not currentUser.isadmin:
         abort(403)
 
 #_____________API FOR ADMIN AND CLIENT___________
 #Add new booking
 @booking.route('/booking', methods=['POST'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def add_new_booking():
     bookingdate = request.json.get('bookingdate')
     bookingtime = request.json.get('bookingtime')
@@ -31,7 +35,7 @@ def add_new_booking():
     serviceids = request.json.get('services')
     state = "Wait for confirmation"
 
-    customer = Customer.query.filter_by(customerid=customerid, hide=False).first_or_404()
+    customer = Customer.query.filter_by(id=customerid, hide=False).first_or_404()
     barber = Barber.query.filter_by(barberid=barberid, hide=False).first_or_404()
 
     newBooking = Booking(
@@ -49,25 +53,18 @@ def add_new_booking():
         newBooking.booked_services.append(service)
         timeAdd += service.timeofservice
 
-    timeFrom = datetime.strptime(bookingtime, '%Y-%m-%d %H:%M:%S')
+    timeFrom = datetime.strptime(bookingtime, '%H:%M:%S')
     timeChange = timedelta(minutes=timeAdd)
     timeTo = timeFrom + timeChange
-    #formatted timeTo
-    #timeTo.strftime("%Y-%m-%d %H:%M:%S")
 
     #handle worktime's barber
     newWorktime = WorkTime(
-        date=timeFrom.strftime("%Y-%m-%d"),
+        date=bookingdate,
         timefrom=timeFrom.strftime("%H:%M:%S"),
         timeto=timeTo.strftime("%H:%M:%S"),
         statework="Wait for confirmation ",
         barberWTime=barber
     )
-
-    #Debug---
-    #return make_response(jsonify({'message': newWorktime.barberWTime.barbername}), 200)
-    #return make_response(jsonify({'message': timeTo.strftime("%Y-%m-%d %H:%M:%S")}), 200)
-    # Debug---
 
     db.session.add_all([newBooking, newWorktime])
     db.session.commit()
@@ -76,12 +73,13 @@ def add_new_booking():
 
 #Get Booking detail by id
 @booking.route('/booking/<int:id>', methods=['GET'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def get_booking_by_id(id):
     booking = Booking.query.filter_by(bookingid=id, hide=False).first_or_404()
     if not booking:
         return make_response(jsonify({'message': 'Booking is empty'}), 404)
-    customer = Customer.query.filter_by(customerid=booking.customerid, hide=False).first_or_404()
+    customer = Customer.query.filter_by(id=booking.customerid, hide=False).first_or_404()
     barber = Barber.query.filter_by(barberid=booking.barberid, hide=False).first_or_404()
     worktime = WorkTime.query.filter_by(barberid=barber.barberid, date=booking.bookingdate, timefrom=booking.bookingtime).first_or_404()
     servicesList = []
@@ -100,7 +98,7 @@ def get_booking_by_id(id):
     return make_response(jsonify({
         "bookingid": booking.bookingid,
         "customer": {
-            "customerid": customer.customerid,
+            "customerid": customer.id,
             "customername": customer.customername
         },
         "barber": {
@@ -115,9 +113,61 @@ def get_booking_by_id(id):
         "createat": booking.createat
     }))
 
+#Get list customer'booking
+@booking.route('/bookings/<int:id>', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@jwt_required()
+def get_booking_by_customer_id(id):
+    bookings = Booking.query.filter_by(customerid=id, hide=False).all()
+    if not bookings:
+        return make_response(jsonify({'message': 'Bookings is empty'}), 404)
+    bookingsList = []
+
+    for booking in bookings:
+        customer = Customer.query.filter_by(id=booking.customerid, hide=False).first_or_404()
+        barber = Barber.query.filter_by(barberid=booking.barberid, hide=False).first_or_404()
+        worktime = WorkTime.query.filter_by(barberid=barber.barberid, date=booking.bookingdate,
+                                            timefrom=booking.bookingtime).first_or_404()
+        servicesList = []
+        for service in booking.booked_services:
+            serviceDict = {
+                "servicename": service.servicename,
+                "timeofservice": service.timeofservice,
+                "price": service.price,
+                "createat": service.createat
+            }
+            servicesList.append(serviceDict)
+            if not servicesList:
+                return make_response(jsonify({'message': 'Services is empty'}), 404)
+        bookingDict = {
+            "bookingid": booking.bookingid,
+            "customer": {
+                "customerid": customer.id,
+                "customername": customer.customername
+            }
+            ,
+            "barber": {
+                "barberid": barber.barberid,
+                "barbername": barber.barbername
+            }
+            ,
+            "worktimeid": worktime.worktimeid,
+            "services": servicesList,
+            "bookingdate": booking.bookingdate.strftime("%Y-%m-%d"),
+            "bookingtime": booking.bookingtime.strftime("%H:%M:%S"),
+            "state": booking.state,
+            "createat": booking.createat
+        }
+        bookingsList.append(bookingDict)
+    if not bookingsList:
+        return make_response(jsonify({'message': 'Services is empty'}), 404)
+
+    return make_response(jsonify({'bookings': bookingsList}), 200)
+
 #Edit booking
 @booking.route('/booking/<int:id>', methods=['PUT'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def edit_booking(id):
     booking = Booking.query.filter_by(bookingid=id, hide=False).first_or_404()
     if not booking:
@@ -130,7 +180,7 @@ def edit_booking(id):
     worktimeid = request.json.get('worktimeid')
     serviceids = request.json.get('services')
 
-    customer = Customer.query.filter_by(customerid=customerid, hide=False).first_or_404()
+    customer = Customer.query.filter_by(id=customerid, hide=False).first_or_404()
     barber = Barber.query.filter_by(barberid=newbarberid, hide=False).first_or_404()
 
     booking.bookingdate = bookingdate
@@ -216,7 +266,7 @@ def edit_booking(id):
     return make_response(jsonify({
             "bookingid": booking.bookingid,
             "customer": {
-                "customerid": customer.customerid,
+                "customerid": customer.id,
                 "customername": customer.customername
             },
             "barber": {
@@ -237,7 +287,8 @@ def edit_booking(id):
 #_____________API FOR ADMIN____________
 ##Get list booking filter by date
 @booking.route('/admin/booking', methods=['POST'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def get_list_booking_by_date():
     check_admin()
     bookingdate = request.json.get('bookingdate')
@@ -247,7 +298,7 @@ def get_list_booking_by_date():
     bookingsList = []
 
     for booking in bookings:
-        customer = Customer.query.filter_by(customerid=booking.customerid, hide=False).first_or_404()
+        customer = Customer.query.filter_by(id=booking.customerid, hide=False).first_or_404()
         barber = Barber.query.filter_by(barberid=booking.barberid, hide=False).first_or_404()
         worktime = WorkTime.query.filter_by(barberid=barber.barberid, date=bookingdate, timefrom=booking.bookingtime).first_or_404()
         servicesList = []
@@ -286,35 +337,88 @@ def get_list_booking_by_date():
 
     return make_response(jsonify({'bookings': bookingsList}), 200)
 
+##Get list bookings
+@booking.route('/admin/booking', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@jwt_required()
+def get_list_booking():
+
+    check_admin()
+    bookings = Booking.query.filter_by(hide=False).all()
+    if not bookings:
+        return make_response(jsonify({'message': 'Bookings is empty'}), 404)
+    bookingsList = []
+
+    for booking in bookings:
+        customer = Customer.query.filter_by(id=booking.customerid, hide=False).first_or_404()
+        barber = Barber.query.filter_by(barberid=booking.barberid, hide=False).first_or_404()
+        worktime = WorkTime.query.filter_by(barberid=barber.barberid, date=booking.bookingdate, timefrom=booking.bookingtime).first_or_404()
+        servicesList = []
+        for service in booking.booked_services:
+            serviceDict = {
+                "serviceid": service.serviceid,
+                "servicename": service.servicename,
+                "timeofservice": service.timeofservice,
+                "price": service.price,
+                "createat": service.createat
+            }
+            servicesList.append(serviceDict)
+            if not servicesList:
+                return make_response(jsonify({'message': 'Services is empty'}), 404)
+        bookingDict = {
+            "bookingid": booking.bookingid,
+            "customer": {
+                    "customerid": customer.id,
+                    "customername": customer.customername
+                }
+            ,
+            "barber": {
+                    "barberid": barber.barberid,
+                    "barbername": barber.barbername
+                }
+            ,
+            "worktimeid": worktime.worktimeid,
+            "services": servicesList,
+            "bookingdate": booking.bookingdate.strftime("%Y-%m-%d"),
+            "bookingtime": booking.bookingtime.strftime("%H:%M:%S"),
+            "state": booking.state,
+            "createat": booking.createat
+        }
+        bookingsList.append(bookingDict)
+    if not bookingsList:
+        return make_response(jsonify({'message': 'Services is empty'}), 404)
+
+    return make_response(jsonify({'bookings': bookingsList}), 200)
+
 ##Confirm booking
 @booking.route('/admin/booking/<int:id>', methods=['PUT'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def confirm_booking(id):
     check_admin()
     booking = Booking.query.filter_by(bookingid=id, hide=False).first_or_404()
     if not booking:
         return make_response(jsonify({'message': 'Booking is empty'}), 404)
 
-    worktimeid = request.json.get('worktimeid')
-    worktime = WorkTime.query.filter_by(worktimeid=worktimeid).first_or_404()
+    worktime = WorkTime.query.filter_by(barberid=booking.barberid, date=booking.bookingdate, timefrom=booking.bookingtime).first_or_404()
 
     booking.state = "Confirmed"
     worktime.statework = "Working"
 
     db.session.commit()
-    return make_response(jsonify({'message': 'Confirm success'}), 200)
+    return make_response(jsonify({'message': 'Confirm booking success'}), 200)
 
 ##Cancel booking
 @booking.route('/admin/booking/<int:id>', methods=['DELETE'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def cancel_booking(id):
     check_admin()
     booking = Booking.query.filter_by(bookingid=id, hide=False).first_or_404()
     if not booking:
         return make_response(jsonify({'message': 'Booking is empty'}), 404)
 
-    worktimeid = request.json.get('worktimeid')
-    worktime = WorkTime.query.filter_by(worktimeid=worktimeid).first_or_404()
+    worktime = WorkTime.query.filter_by(barberid=booking.barberid, date=booking.bookingdate, timefrom=booking.bookingtime).first_or_404()
 
     booking.hide = True
 
