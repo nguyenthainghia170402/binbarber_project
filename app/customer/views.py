@@ -2,8 +2,10 @@ import sys
 import json
 
 from flask import jsonify, request, session, abort, make_response
+from flask_cors import cross_origin
 from flask_login import current_user, login_required
 from datetime import datetime
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from . import customer
 from .. import db
@@ -14,12 +16,15 @@ def check_admin():
     """
     Prevent non-admins from accessing the page
     """
-    if not current_user.isadmin:
+    currentUserId = get_jwt_identity()
+    currentUser = Customer.query.filter_by(id=currentUserId, hide=False).first_or_404()
+    if not currentUser.isadmin:
         abort(403)
 
 
 @customer.route('/customers', methods=['GET'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def list_customers():
     check_admin()
 
@@ -29,7 +34,7 @@ def list_customers():
 
     for customer in customers:
         customerDict = {
-            "customerid": customer.customerid,
+            "customerid": customer.id,
             "customername": customer.customername,
             "phonenumber": customer.phonenumber,
             "birthday": customer.birthday,
@@ -43,15 +48,16 @@ def list_customers():
 
 
 @customer.route('/customers/<int:id>', methods=['GET'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def get_customer_by_id(id):
     check_admin()
 
-    customer = Customer.query.filter_by(customerid=id, hide=False).first_or_404()
+    customer = Customer.query.filter_by(id=id, hide=False).first_or_404()
 
     return make_response(jsonify({"customer":
         [{
-            "customerid": customer.customerid,
+            "customerid": customer.id,
             "customername": customer.customername,
             "birthday": customer.birthday,
             "phonenumber": customer.phonenumber,
@@ -62,7 +68,8 @@ def get_customer_by_id(id):
 
 
 @customer.route('/customers/<int:id>', methods=['PUT'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def edit_customer(id):
     check_admin()
 
@@ -78,7 +85,7 @@ def edit_customer(id):
     db.session.commit()
 
     return make_response(jsonify({
-        "customerid": customer.customerid,
+        "customerid": customer.id,
         "customername": customer.customername,
         "birthday": customer.birthday,
         "phonenumber": customer.phonenumber
@@ -86,11 +93,12 @@ def edit_customer(id):
 
 
 @customer.route('/customers/<int:id>', methods=['DELETE'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def delete_customer(id):
     check_admin()
 
-    customer = Customer.query.filter_by(customerid=id, hide=False).first_or_404()
+    customer = Customer.query.filter_by(id=id, hide=False).first_or_404()
 
     customer.hide = True
 

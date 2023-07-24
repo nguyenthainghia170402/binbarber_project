@@ -2,27 +2,28 @@ import sys
 import json
 
 from flask import jsonify, request, session, abort, make_response
+from flask_cors import cross_origin
 from flask_login import current_user, login_required
 from datetime import datetime
 
 from . import customerimage
 from .. import db
-from ..models import CustomerImage, Barber
-
+from ..models import CustomerImage, Barber, Customer
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 def check_admin():
     """
     Prevent non-admins from accessing the page
     """
-    if not current_user.isadmin:
+    currentUser = Customer.query.filter_by(id=get_jwt_identity(), hide=False).first_or_404()
+    if not currentUser.isadmin:
         abort(403)
 
 @customerimage.route('/cusimages', methods=['GET'])
-@login_required
+@cross_origin(supports_credentials=True)
+# @jwt_required()
 def get_list_customer_image():
     cusimages = CustomerImage.query.all()
-
-
     cusimagesList = []
 
     for cusimage in cusimages:
@@ -40,7 +41,8 @@ def get_list_customer_image():
     return make_response(jsonify({'cusimages': cusimagesList}))
 
 @customerimage.route('/cusimages', methods=['POST'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def add_new_customer_image():
     check_admin()
     image = request.json.get('image')
@@ -59,7 +61,8 @@ def add_new_customer_image():
     return make_response(jsonify({'message': 'Add new customer image success'}),200)
 
 @customerimage.route('/cusimages/<int:id>', methods=['GET'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def get_customer_image_by_id(id):
     cusimage = CustomerImage.query.get_or_404(id)
     if cusimage is None:
@@ -72,7 +75,8 @@ def get_customer_image_by_id(id):
     }))
 
 @customerimage.route('/cusimages/<int:id>', methods=['PUT'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def edit_customer_image(id):
     check_admin()
     image = request.json.get('image')
@@ -86,7 +90,8 @@ def edit_customer_image(id):
     return make_response(jsonify({'message': 'Edit customer image success'}), 200)
 
 @customerimage.route('/cusimages/<int:id>', methods=['DELETE'])
-@login_required
+@cross_origin(supports_credentials=True)
+@jwt_required()
 def delete_customer_image(id):
     check_admin()
     cusimage = CustomerImage.query.get_or_404(id)
